@@ -76,6 +76,8 @@ class DatasetConfig:
     common_mask_values: list[int] = field(default_factory=lambda: [0, 1])
     sample_id_format: str = "filename_stem"
     root: str = "./data/isic2016"
+    train_val_ratio: float = 0.8
+    split_seed: int = 42
     metadata_keys: list[str] = field(
         default_factory=lambda: [
             "dataset_name",
@@ -355,7 +357,7 @@ class ExperimentConfig:
     save_top_k: int = 1
     monitor: str = "val_dice"
     monitor_mode: str = "max"
-    max_epochs: int = 100
+    max_epochs: int = 50
     log_every_n_steps: int = 10
     checkpoint_every_n_epochs: int = 1
     manifest_filename: str = "run_manifest.json"

@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-
-from medseg.config.schema import DatasetConfig, SplitConfig
+from typing import Any
 
 
 class DatasetSplit(str, Enum):
@@ -27,7 +26,7 @@ def normalize_split(split: str | DatasetSplit) -> DatasetSplit:
         raise ValueError(f"Unsupported split '{split}'. Expected one of: {allowed}") from error
 
 
-def resolve_split_config(dataset_config: DatasetConfig, split: str | DatasetSplit) -> SplitConfig:
+def resolve_split_config(dataset_config: Any, split: str | DatasetSplit) -> Any:
     """Return the explicit split definition from dataset configuration."""
 
     normalized = normalize_split(split)

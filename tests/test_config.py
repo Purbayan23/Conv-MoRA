@@ -16,7 +16,7 @@ from medseg.config.schema import AppConfig
 
 
 class ConfigLoadingTests(unittest.TestCase):
-    """Verify Hydra composition and structured config loading."""
+    """Verify YAML composition and structured config loading."""
 
     def test_compose_config_uses_expected_baseline(self) -> None:
         config = compose_config()

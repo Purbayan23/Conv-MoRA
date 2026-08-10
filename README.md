@@ -11,7 +11,7 @@ At the current stage, the emphasis is on explicit dataset contracts, configurati
 - Independent experiments across multiple medical segmentation datasets
 - Reusable dataset, training, validation, testing, metric, and experiment infrastructure
 - Dataset-specific parsing, preprocessing, split definitions, and metadata isolated in dataset adapters
-- Centralized Hydra/OmegaConf configuration for dataset, preprocessing, augmentation, model, optimization, runtime, and checkpoint policy
+- Centralized YAML/dataclass configuration for dataset, preprocessing, augmentation, model, optimization, runtime, and checkpoint policy
 - Explicit experiment identity so results can always be traced back to dataset, model, split definition, preprocessing, augmentation, and seed
 
 ## Explicitly Out of Scope Right Now
@@ -26,7 +26,7 @@ At the current stage, the emphasis is on explicit dataset contracts, configurati
 
 ## Current Structure
 
-- `configs/`: Hydra configuration groups for dataset, preprocessing, augmentation, model, optimizer, runtime, checkpoint policy, and experiment tracking
+- `configs/`: YAML configuration groups for dataset, preprocessing, augmentation, model, optimizer, runtime, checkpoint policy, and experiment tracking
 - `src/medseg/`: research code organized around contracts and replaceable components
 - `docs/`: architectural notes and explicit data/model contracts
 - `tests/`: contract-focused unit tests for configuration, dataset adapters, transforms, model I/O contracts, and experiment identity

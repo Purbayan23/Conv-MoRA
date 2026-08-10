@@ -8,6 +8,16 @@ from typing import Any
 
 from medseg.typing import SegmentationSample
 
+try:
+    import numpy as np
+except ImportError:  # pragma: no cover - numpy is an install-time dependency
+    np = None
+
+try:
+    import torch
+except ImportError:  # pragma: no cover - torch is an install-time dependency
+    torch = None
+
 
 @dataclass(frozen=True)
 class TensorContract:
@@ -100,6 +110,13 @@ def _extract_unique_values(tensor: Any) -> tuple[float, ...] | None:
     if hasattr(tensor, "unique_values"):
         values = getattr(tensor, "unique_values")
         return tuple(float(value) for value in values)
+    if torch is not None and isinstance(tensor, torch.Tensor):
+        return tuple(float(value) for value in torch.unique(tensor.detach().cpu()).flatten().tolist())
+    if np is not None:
+        try:
+            return tuple(float(value) for value in np.unique(np.asarray(tensor)).flatten().tolist())
+        except Exception:  # pragma: no cover - fallback for non-array-like inputs
+            return None
     return None
 
 
