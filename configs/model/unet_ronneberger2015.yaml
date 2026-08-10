@@ -1,0 +1,18 @@
+# @package model
+name: unet
+variant: ronneberger2015
+architecture: unet_ronneberger2015
+implemented: false
+in_channels: ${dataset.input_channels}
+out_channels: ${dataset.num_classes}
+encoder_depth: 4
+feature_channels: [64, 128, 256, 512, 1024]
+padding: valid
+convolution_block: ${blocks.conv.name}
+encoder_block: ${blocks.encoder.name}
+bottleneck_block: ${blocks.bottleneck.name}
+decoder_block: ${blocks.decoder.name}
+normalization: ${blocks.norm.name}
+activation: ${blocks.activation.name}
+head: ${head.name}
+stable_module_naming: true

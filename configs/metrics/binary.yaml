@@ -1,0 +1,4 @@
+# @package metrics
+names: [dice, iou]
+threshold: 0.5
+from_logits: true

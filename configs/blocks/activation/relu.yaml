@@ -1,0 +1,3 @@
+# @package blocks.activation
+name: relu
+inplace: true

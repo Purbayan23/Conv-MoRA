@@ -1,0 +1,45 @@
+# @package dataset
+name: isic2016
+adapter: isic2016
+task: binary_segmentation
+version: "2016"
+split_definition_name: official_isic2016_2016
+image_color_space: rgb
+input_channels: 3
+num_classes: 1
+raw_mask_values: [0, 255]
+common_mask_values: [0, 1]
+sample_id_format: filename_stem
+root: ${oc.env:MEDSEG_DATA_ROOT,./data/isic2016}
+metadata_keys:
+  - dataset_name
+  - dataset_version
+  - split
+  - source_image_path
+  - source_mask_path
+  - original_spatial_shape
+  - split_manifest
+splits:
+  train:
+    name: train
+    images_dir: ${dataset.root}/raw/images/train
+    masks_dir: ${dataset.root}/raw/masks/train
+    manifest_path: ${dataset.root}/splits/train.csv
+    definition_source: official
+  val:
+    name: val
+    images_dir: ${dataset.root}/raw/images/val
+    masks_dir: ${dataset.root}/raw/masks/val
+    manifest_path: ${dataset.root}/splits/val.csv
+    definition_source: official
+  test:
+    name: test
+    images_dir: ${dataset.root}/raw/images/test
+    masks_dir: ${dataset.root}/raw/masks/test
+    manifest_path: ${dataset.root}/splits/test.csv
+    definition_source: official
+loader:
+  batch_size: 4
+  num_workers: 2
+  pin_memory: true
+  persistent_workers: false

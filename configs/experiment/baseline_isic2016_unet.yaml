@@ -1,0 +1,11 @@
+# @package experiment
+name: baseline_isic2016_unet
+output_root: ${oc.env:MEDSEG_OUTPUT_ROOT,./outputs}
+tags: [baseline, unet, isic2016]
+save_top_k: 1
+monitor: val_dice
+monitor_mode: max
+max_epochs: 100
+log_every_n_steps: 10
+checkpoint_every_n_epochs: 1
+manifest_filename: run_manifest.json

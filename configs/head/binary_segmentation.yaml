@@ -1,0 +1,5 @@
+# @package head
+name: binary_segmentation_head
+out_channels: ${dataset.num_classes}
+activation: none
+threshold: 0.5

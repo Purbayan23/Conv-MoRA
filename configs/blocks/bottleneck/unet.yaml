@@ -1,0 +1,3 @@
+# @package blocks.bottleneck
+name: unet_bottleneck_stage
+dropout: 0.0

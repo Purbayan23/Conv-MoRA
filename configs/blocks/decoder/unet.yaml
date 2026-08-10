@@ -1,0 +1,4 @@
+# @package blocks.decoder
+name: unet_decoder_stage
+upsample_mode: transposed_conv
+merge_mode: concat

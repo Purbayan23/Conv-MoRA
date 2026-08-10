@@ -1,0 +1,20 @@
+# @package augmentation
+name: default_binary_augmentation
+policy:
+  shared_spatial_parameters: true
+  image_interpolation: bilinear
+  mask_interpolation: nearest
+  apply_image_only_transforms_to_mask: false
+train:
+  enabled: true
+  allow_random: true
+  spatial:
+    - random_horizontal_flip
+    - random_vertical_flip
+    - random_rotate_90
+  image_only: []
+eval:
+  enabled: true
+  allow_random: false
+  spatial: []
+  image_only: []

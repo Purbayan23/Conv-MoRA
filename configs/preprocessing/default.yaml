@@ -1,0 +1,24 @@
+# @package preprocessing
+name: default_binary_preprocessing
+image_dtype: float32
+mask_dtype: float32
+image_layout: CHW
+mask_layout: 1HW
+channel_order: rgb
+scale_uint8_to_unit_interval: true
+size:
+  name: fixed_size
+  height: 256
+  width: 256
+  require_spatial_divisible_by: 16
+  enforce_before_model: true
+  preserve_aspect_ratio: false
+interpolation:
+  image: bilinear
+  mask: nearest
+normalization:
+  enabled: false
+  mode: none
+  mean: []
+  std: []
+  input_range: [0.0, 1.0]

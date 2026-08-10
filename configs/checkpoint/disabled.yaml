@@ -1,0 +1,6 @@
+# @package checkpoint
+load_enabled: false
+load_path: null
+strict: true
+allow_dataset_mismatch: false
+allow_model_mismatch: false

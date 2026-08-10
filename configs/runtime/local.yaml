@@ -1,0 +1,10 @@
+# @package runtime
+profile_name: local
+deterministic: true
+device: auto
+amp: false
+compile_model: false
+matmul_precision: high
+num_workers: null
+pin_memory: null
+prefetch_factor: 2

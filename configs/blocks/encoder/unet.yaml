@@ -1,0 +1,4 @@
+# @package blocks.encoder
+name: unet_encoder_stage
+downsample: max_pool
+skip_connections: true

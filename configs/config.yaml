@@ -1,0 +1,32 @@
+defaults:
+  - dataset: isic2016
+  - preprocessing: default
+  - augmentation: default
+  - model: unet_ronneberger2015
+  - blocks/conv: default
+  - blocks/encoder: unet
+  - blocks/bottleneck: unet
+  - blocks/decoder: unet
+  - blocks/norm: none
+  - blocks/activation: relu
+  - head: binary_segmentation
+  - loss: bce_dice
+  - metrics: binary
+  - optimizer: adam
+  - scheduler: none
+  - checkpoint: disabled
+  - runtime: local
+  - experiment: baseline_isic2016_unet
+  - _self_
+
+project:
+  name: conv-mora-seg
+  package: medseg
+  task: binary_medical_image_segmentation
+
+seed: 42
+
+hydra:
+  run:
+    dir: .
+  output_subdir: null

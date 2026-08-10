@@ -1,0 +1,4 @@
+# @package blocks.norm
+name: none
+eps: 1.0e-05
+affine: true
