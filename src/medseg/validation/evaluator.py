@@ -93,7 +93,7 @@ class Evaluator:
         union = true_positive + false_positive + false_negative
         return {
             "loss": total_loss / sample_count,
-            "dice": (2.0 * true_positive + smooth) / (2.0 * true_positive + union + smooth),
+            "dice": (2.0 * true_positive + smooth) / (true_positive + union + smooth),
             "iou": (true_positive + smooth) / (union + smooth),
             "precision": (
                 true_positive / (true_positive + false_positive)
