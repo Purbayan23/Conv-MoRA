@@ -36,8 +36,8 @@ splits:
     definition_source: generated_from_official_training
   test:
     name: test
-    images_dir: ${dataset.root}/ISBI2016_ISIC_Part1_Test_Data/ISBI2016_ISIC_Part1_Test_Data
-    masks_dir: ${dataset.root}/ISBI2016_ISIC_Part1_Test_GroundTruth/ISBI2016_ISIC_Part1_Test_GroundTruth
+    images_dir: ${dataset.root}/ISBI2016_ISIC_Part1_Test_Data
+    masks_dir: ${dataset.root}/ISBI2016_ISIC_Part1_Test_GroundTruth
     manifest_path: ${dataset.root}/splits/test.csv
     definition_source: official_test
 loader:

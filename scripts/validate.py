@@ -22,24 +22,27 @@ from medseg.validation import Evaluator  # noqa: E402
 
 
 def main() -> None:
-    """Evaluate the configured checkpoint on validation data."""
+    """Evaluate the configured checkpoint on the selected split."""
 
     config = compose_config(overrides=sys.argv[1:])
     if not config.checkpoint.load_path:
-        raise SystemExit("Set checkpoint.load_path=/path/to/best.pt to run validation.")
+        raise SystemExit("Set checkpoint.load_path=/path/to/best.pt to run evaluation.")
+    if config.split not in {"val", "test"}:
+        raise SystemExit("split must be either 'val' or 'test'.")
 
     device = torch.device(detect_device(config.runtime.device))
-    loaders = build_dataloaders(config, splits=("val",))
+    loaders = build_dataloaders(config, splits=(config.split,))
     model = build_model(config).to(device)
     load_checkpoint(Path(config.checkpoint.load_path), model, device=device)
     results = Evaluator.from_config(config).evaluate(
         model=model,
-        dataloader=loaders["val"],
+        dataloader=loaders[config.split],
         loss_fn=build_loss(config),
         device=device,
     )
+    label = "Test" if config.split == "test" else "Validation"
     print(
-        f"Validation | loss={results['loss']:.4f} | "
+        f"{label} | loss={results['loss']:.4f} | "
         f"dice={results['dice']:.4f} | iou={results['iou']:.4f}"
     )
 

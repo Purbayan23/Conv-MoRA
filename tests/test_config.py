@@ -32,4 +32,9 @@ class ConfigLoadingTests(unittest.TestCase):
         self.assertEqual(config.optimizer.name, "adam")
         self.assertEqual(config.head.name, "binary_segmentation_head")
         self.assertEqual(config.seed, 42)
+        self.assertEqual(config.split, "val")
         self.assertFalse(config.checkpoint.load_enabled)
+
+    def test_evaluation_split_can_be_overridden(self) -> None:
+        config = load_typed_config(overrides=["split=test"])
+        self.assertEqual(config.split, "test")

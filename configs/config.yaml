@@ -25,3 +25,4 @@ project:
   task: binary_medical_image_segmentation
 
 seed: 42
+split: val

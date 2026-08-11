@@ -369,6 +369,7 @@ class AppConfig:
 
     project: ProjectConfig = field(default_factory=ProjectConfig)
     seed: int = 42
+    split: str = "val"
     dataset: DatasetConfig = field(default_factory=DatasetConfig)
     preprocessing: PreprocessingConfig = field(default_factory=PreprocessingConfig)
     augmentation: AugmentationConfig = field(default_factory=AugmentationConfig)
