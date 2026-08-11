@@ -13,7 +13,7 @@ defaults:
   - loss: bce_dice
   - metrics: binary
   - optimizer: adam
-  - scheduler: none
+  - scheduler: reduce_on_plateau
   - checkpoint: disabled
   - runtime: local
   - experiment: baseline_isic2016_unet

@@ -9,3 +9,4 @@ max_epochs: 50
 log_every_n_steps: 10
 checkpoint_every_n_epochs: 1
 manifest_filename: run_manifest.json
+qualitative_examples: 5

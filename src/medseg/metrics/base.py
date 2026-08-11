@@ -64,7 +64,12 @@ def build_metrics(config: Any) -> list[BaseMetric]:
     from medseg.config.schema import AppConfig
 
     metrics_config = config.metrics if isinstance(config, AppConfig) else config
-    from medseg.metrics.binary_segmentation import DiceMetric, IoUMetric
+    from medseg.metrics.binary_segmentation import (
+        DiceMetric,
+        IoUMetric,
+        PrecisionMetric,
+        RecallMetric,
+    )
 
     metrics: list[BaseMetric] = []
     for name in metrics_config.names:
@@ -73,6 +78,20 @@ def build_metrics(config: Any) -> list[BaseMetric]:
             metrics.append(DiceMetric(threshold=metrics_config.threshold, from_logits=metrics_config.from_logits))
         elif normalized in {"iou", "jaccard"}:
             metrics.append(IoUMetric(threshold=metrics_config.threshold, from_logits=metrics_config.from_logits))
+        elif normalized == "precision":
+            metrics.append(
+                PrecisionMetric(
+                    threshold=metrics_config.threshold,
+                    from_logits=metrics_config.from_logits,
+                )
+            )
+        elif normalized in {"recall", "sensitivity"}:
+            metrics.append(
+                RecallMetric(
+                    threshold=metrics_config.threshold,
+                    from_logits=metrics_config.from_logits,
+                )
+            )
         else:
             raise ValueError(f"Unknown metric '{name}'.")
     return metrics

@@ -41,7 +41,7 @@ splits:
     manifest_path: ${dataset.root}/splits/test.csv
     definition_source: official_test
 loader:
-  batch_size: 4
+  batch_size: 16
   num_workers: 2
   pin_memory: true
   persistent_workers: false

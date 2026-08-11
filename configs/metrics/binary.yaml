@@ -1,4 +1,5 @@
 # @package metrics
-names: [dice, iou]
+names: [dice, iou, precision, recall]
 threshold: 0.5
 from_logits: true
+smooth: 1.0

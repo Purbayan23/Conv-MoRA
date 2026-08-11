@@ -38,6 +38,7 @@ def save_checkpoint(
     epoch: int,
     best_val_dice: float,
     history: list[dict[str, float | int]],
+    scheduler: Any | None = None,
 ) -> None:
     """Save the minimal state required to resume an experiment."""
 
@@ -49,6 +50,7 @@ def save_checkpoint(
             "optimizer_state_dict": optimizer.state_dict(),
             "best_val_dice": best_val_dice,
             "history": history,
+            "scheduler_state_dict": scheduler.state_dict() if scheduler is not None else None,
         },
         path,
     )
@@ -59,6 +61,7 @@ def load_checkpoint(
     model: nn.Module,
     optimizer: Optimizer | None = None,
     device: torch.device | str = "cpu",
+    scheduler: Any | None = None,
 ) -> dict[str, Any]:
     """Load model state and optionally optimizer state from a checkpoint."""
 
@@ -66,4 +69,7 @@ def load_checkpoint(
     model.load_state_dict(checkpoint["model_state_dict"])
     if optimizer is not None and "optimizer_state_dict" in checkpoint:
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+    scheduler_state = checkpoint.get("scheduler_state_dict")
+    if scheduler is not None and scheduler_state:
+        scheduler.load_state_dict(scheduler_state)
     return checkpoint

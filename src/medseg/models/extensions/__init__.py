@@ -1,5 +1,5 @@
 """Extension hook exports."""
 
-from medseg.models.extensions.base import ModelExtension
+from medseg.models.extensions.base import Adapter, ModelExtension
 
-__all__ = ["ModelExtension"]
+__all__ = ["Adapter", "ModelExtension"]

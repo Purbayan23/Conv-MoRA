@@ -50,4 +50,83 @@ class IoUMetric(BaseMetric):
         return float(score.mean().item())
 
 
-__all__ = ["DiceMetric", "IoUMetric"]
+class PrecisionMetric(BaseMetric):
+    """Thresholded positive predictive value for binary segmentation."""
+
+    def __init__(self, threshold: float = 0.5, from_logits: bool = True) -> None:
+        self.threshold = threshold
+        self.from_logits = from_logits
+
+    def __call__(self, outputs: ModelOutput | torch.Tensor, targets: Any) -> float:
+        true_positive, false_positive, _ = _batch_confusion_counts(
+            outputs, targets, self.threshold, self.from_logits
+        )
+        denominator = true_positive + false_positive
+        score = torch.where(denominator > 0, true_positive / denominator, torch.zeros_like(denominator))
+        return float(score.mean().item())
+
+
+class RecallMetric(BaseMetric):
+    """Thresholded recall, also known as sensitivity, for binary segmentation."""
+
+    def __init__(self, threshold: float = 0.5, from_logits: bool = True) -> None:
+        self.threshold = threshold
+        self.from_logits = from_logits
+
+    def __call__(self, outputs: ModelOutput | torch.Tensor, targets: Any) -> float:
+        true_positive, _, false_negative = _batch_confusion_counts(
+            outputs, targets, self.threshold, self.from_logits
+        )
+        denominator = true_positive + false_negative
+        score = torch.where(denominator > 0, true_positive / denominator, torch.zeros_like(denominator))
+        return float(score.mean().item())
+
+
+def _batch_confusion_counts(
+    outputs: ModelOutput | torch.Tensor,
+    targets: Any,
+    threshold: float,
+    from_logits: bool,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Return per-sample true-positive, false-positive, and false-negative counts."""
+
+    logits = _extract_logits(outputs)
+    target = _prepare_binary_target(targets, logits) >= 0.5
+    probabilities = torch.sigmoid(logits) if from_logits else logits
+    prediction = probabilities >= threshold
+    dims = tuple(range(1, prediction.ndim))
+    true_positive = (prediction & target).sum(dim=dims).float()
+    false_positive = (prediction & ~target).sum(dim=dims).float()
+    false_negative = (~prediction & target).sum(dim=dims).float()
+    return true_positive, false_positive, false_negative
+
+
+def binary_confusion_counts(
+    outputs: ModelOutput | torch.Tensor,
+    targets: Any,
+    threshold: float = 0.5,
+    from_logits: bool = True,
+) -> tuple[int, int, int]:
+    """Return dataset-accumulable binary confusion counts for one batch."""
+
+    true_positive, false_positive, false_negative = _batch_confusion_counts(
+        outputs, targets, threshold, from_logits
+    )
+    return (
+        int(true_positive.sum().item()),
+        int(false_positive.sum().item()),
+        int(false_negative.sum().item()),
+    )
+
+
+SensitivityMetric = RecallMetric
+
+
+__all__ = [
+    "DiceMetric",
+    "IoUMetric",
+    "PrecisionMetric",
+    "RecallMetric",
+    "SensitivityMetric",
+    "binary_confusion_counts",
+]

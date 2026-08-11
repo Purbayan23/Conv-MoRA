@@ -54,7 +54,7 @@ class DatasetSplitsConfig:
 class DataLoaderConfig:
     """Dataloader defaults owned by the dataset configuration."""
 
-    batch_size: int = 4
+    batch_size: int = 16
     num_workers: int = 2
     pin_memory: bool = True
     persistent_workers: bool = False
@@ -298,9 +298,10 @@ class LossConfig:
 class MetricsConfig:
     """Metric selection for binary segmentation."""
 
-    names: list[str] = field(default_factory=lambda: ["dice", "iou"])
+    names: list[str] = field(default_factory=lambda: ["dice", "iou", "precision", "recall"])
     threshold: float = 0.5
     from_logits: bool = True
+    smooth: float = 1.0
 
 
 @dataclass
@@ -317,8 +318,13 @@ class OptimizerConfig:
 class SchedulerConfig:
     """Learning-rate scheduler settings."""
 
-    name: str = "none"
+    name: str = "reduce_on_plateau"
     interval: str = "epoch"
+    monitor: str = "val_dice"
+    mode: str = "max"
+    factor: float = 0.5
+    patience: int = 5
+    min_lr: float = 1.0e-06
 
 
 @dataclass
@@ -361,6 +367,7 @@ class ExperimentConfig:
     log_every_n_steps: int = 10
     checkpoint_every_n_epochs: int = 1
     manifest_filename: str = "run_manifest.json"
+    qualitative_examples: int = 5
 
 
 @dataclass

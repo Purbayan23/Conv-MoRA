@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 from medseg.config.schema import AppConfig
 from medseg.experiment.identity import build_experiment_identity
 from medseg.models.builder import describe_model_request
-from medseg.optimization.builder import build_optimizer_spec, build_scheduler_spec
+from medseg.optimization.builder import build_optimizer_spec, build_scheduler, build_scheduler_spec
 from medseg.training.checkpointing import (
     build_checkpoint_paths,
     load_checkpoint,
@@ -36,6 +36,7 @@ class Trainer:
     train_loader: DataLoader | None = None
     val_loader: DataLoader | None = None
     device: torch.device | str = "cpu"
+    scheduler: Any | None = None
 
     @classmethod
     def from_config(
@@ -47,12 +48,15 @@ class Trainer:
         train_loader: DataLoader | None = None,
         val_loader: DataLoader | None = None,
         device: torch.device | str = "cpu",
+        scheduler: Any | None = None,
     ) -> "Trainer":
         """Create a trainer while keeping component construction external."""
 
         identity = build_experiment_identity(config)
         optimizer_spec = build_optimizer_spec(config)
         scheduler_spec = build_scheduler_spec(config)
+        if scheduler is None and optimizer is not None:
+            scheduler = build_scheduler(optimizer, config)
         summary = {
             "dataset": identity.dataset_name,
             "dataset_version": identity.dataset_version,
@@ -71,6 +75,7 @@ class Trainer:
             component_summary=summary,
             model=model,
             optimizer=optimizer,
+            scheduler=scheduler,
             loss_fn=loss_fn,
             train_loader=train_loader,
             val_loader=val_loader,
@@ -112,6 +117,7 @@ class Trainer:
                 self.model,
                 optimizer=self.optimizer,
                 device=self.device,
+                scheduler=self.scheduler,
             )
             start_epoch = int(checkpoint.get("epoch", 0)) + 1
             best_val_dice = float(checkpoint.get("best_val_dice", best_val_dice))
@@ -131,13 +137,29 @@ class Trainer:
                 "val_loss": validation["loss"],
                 "val_dice": validation["dice"],
                 "val_iou": validation["iou"],
+                "val_precision": validation["precision"],
+                "val_recall": validation["recall"],
             }
             history.append(record)
             print(
                 f"Epoch {epoch:03d}/{total_epochs:03d} | "
                 f"train_loss={train_loss:.4f} | val_loss={validation['loss']:.4f} | "
-                f"val_dice={validation['dice']:.4f} | val_iou={validation['iou']:.4f}"
+                f"val_dice={validation['dice']:.4f} | val_iou={validation['iou']:.4f} | "
+                f"val_precision={validation['precision']:.4f} | "
+                f"val_recall={validation['recall']:.4f}"
             )
+
+            is_best = validation["dice"] > best_val_dice
+            if is_best:
+                best_val_dice = validation["dice"]
+            if self.scheduler is not None:
+                monitor_name = self.config.scheduler.monitor
+                metric_name = monitor_name[4:] if monitor_name.startswith("val_") else monitor_name
+                if metric_name not in validation:
+                    raise KeyError(
+                        f"Scheduler monitor '{monitor_name}' is not available in validation results."
+                    )
+                self.scheduler.step(validation[metric_name])
 
             if checkpoint_paths is not None:
                 save_checkpoint(
@@ -145,11 +167,11 @@ class Trainer:
                     self.model,
                     self.optimizer,
                     epoch,
-                    max(best_val_dice, validation["dice"]),
+                    best_val_dice,
                     history,
+                    scheduler=self.scheduler,
                 )
-                if validation["dice"] > best_val_dice:
-                    best_val_dice = validation["dice"]
+                if is_best:
                     save_checkpoint(
                         checkpoint_paths.best,
                         self.model,
@@ -157,9 +179,22 @@ class Trainer:
                         epoch,
                         best_val_dice,
                         history,
+                        scheduler=self.scheduler,
                     )
-            else:
-                best_val_dice = max(best_val_dice, validation["dice"])
+
+            if (
+                is_best
+                and run_directory is not None
+                and self.config.experiment.qualitative_examples > 0
+            ):
+                evaluator.evaluate(
+                    model=self.model,
+                    dataloader=self.val_loader,
+                    loss_fn=self.loss_fn,
+                    device=self.device,
+                    qualitative_dir=run_directory / "figures" / "qualitative",
+                    qualitative_examples=self.config.experiment.qualitative_examples,
+                )
 
             if run_directory is not None:
                 write_json(
