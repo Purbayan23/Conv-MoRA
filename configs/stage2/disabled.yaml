@@ -1,0 +1,3 @@
+# @package stage2
+enabled: false
+protocol_name: disabled

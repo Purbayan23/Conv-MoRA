@@ -1,0 +1,6 @@
+# @package loss
+name: bce
+bce_weight: 1.0
+dice_weight: 0.0
+from_logits: true
+smooth: 1.0

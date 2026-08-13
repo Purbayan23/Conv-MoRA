@@ -271,6 +271,13 @@ class ModelConfig:
     activation: str = "relu"
     head: str = "binary_segmentation_head"
     stable_module_naming: bool = True
+    backbone: str = "ronneberger2015"
+    n_filters_init: int = 16
+    esh_level: int = 3
+    convlora_enabled: bool = False
+    convlora_rank: int = 2
+    convlora_alpha: int = 2
+    encoder_insertion_scope: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -371,6 +378,42 @@ class ExperimentConfig:
 
 
 @dataclass
+class Stage2Config:
+    """Minimal configuration for the paper-inspired target adaptation workflow."""
+
+    enabled: bool = False
+    protocol_name: str = "disabled"
+    source_checkpoint: str | None = None
+    esh_checkpoint: str | None = None
+    adaptation_checkpoint: str | None = None
+    duplicate_audit_manifest: str = "./splits/isic2017_duplicate_audit.csv"
+    target_adaptation_manifest: str = "./splits/isic2017_target_adaptation.csv"
+    target_eval_manifest: str = "./splits/isic2017_target_eval.csv"
+    target_images_dir: str = "./data/isic2017/ISIC-2017_Training_Data"
+    target_masks_dir: str = "./data/isic2017/ISIC-2017_Training_Part1_GroundTruth"
+    insertion_scope: list[str] = field(
+        default_factory=lambda: ["init_path", "down1", "down2", "down3"]
+    )
+    convlora_rank: int = 2
+    convlora_alpha: int = 2
+    esh_level: int = 3
+    source_epochs: int = 50
+    source_batch_size: int = 32
+    source_lr: float = 1.0e-03
+    esh_epochs: int = 20
+    esh_batch_size: int = 32
+    esh_lr: float = 1.0e-03
+    adaptation_epochs: int = 5
+    adaptation_batch_size: int = 32
+    adaptation_lr: float = 1.0e-04
+    consistency_fraction: float = 0.2
+    consistency_split_seed: int = 42
+    consistency_metric: str = "consistency_dice_global"
+    adabn_train_affine: bool = False
+    target_labels_allowed_for_training: bool = False
+
+
+@dataclass
 class AppConfig:
     """Top-level configuration object for the entire project."""
 
@@ -390,3 +433,4 @@ class AppConfig:
     checkpoint: CheckpointConfig = field(default_factory=CheckpointConfig)
     runtime: RuntimeConfig = field(default_factory=RuntimeConfig)
     experiment: ExperimentConfig = field(default_factory=ExperimentConfig)
+    stage2: Stage2Config = field(default_factory=Stage2Config)

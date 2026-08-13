@@ -56,3 +56,6 @@ tensorboard/
 # Temporary files
 *.tmp
 *.log
+
+# Local read-only reference repositories
+reference/

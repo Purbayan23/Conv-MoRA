@@ -1,0 +1,15 @@
+# @package model
+name: unet2d
+variant: reference_unet2d_source
+architecture: unet2d
+implemented: true
+in_channels: ${dataset.input_channels}
+out_channels: ${dataset.num_classes}
+backbone: reference_unet2d
+n_filters_init: 16
+esh_level: 3
+convlora_enabled: false
+convlora_rank: 2
+convlora_alpha: 2
+encoder_insertion_scope: []
+stable_module_naming: true

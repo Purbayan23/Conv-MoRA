@@ -51,7 +51,7 @@ def build_experiment_manifest(config: AppConfig) -> dict[str, Any]:
     """Return a serializable manifest for experiment tracking."""
 
     identity = build_experiment_identity(config)
-    return {
+    manifest: dict[str, Any] = {
         "experiment": {
             "name": identity.experiment_name,
             "tags": list(config.experiment.tags),
@@ -115,3 +115,30 @@ def build_experiment_manifest(config: AppConfig) -> dict[str, Any]:
             "allow_model_mismatch": config.checkpoint.allow_model_mismatch,
         },
     }
+    stage2 = getattr(config, "stage2", None)
+    if stage2 is not None and stage2.enabled:
+        manifest["stage2"] = {
+            "protocol_name": stage2.protocol_name,
+            "paper_mapping": "full_encoder_convlora_plus_adabn",
+            "executable_reference_mapping": (
+                "init_path,down1,down2,down3 ConvLoRA with train-mode BN buffers; "
+                "BN affine parameters frozen"
+            ),
+            "reference_discrepancy": (
+                "reference constrained_lora_down3 omits adapter insertion; reference "
+                "test.py lora:down3 is the closest executable four-stage mapping"
+            ),
+            "insertion_scope": list(stage2.insertion_scope),
+            "convlora_rank": stage2.convlora_rank,
+            "convlora_alpha": stage2.convlora_alpha,
+            "esh_level": stage2.esh_level,
+            "source_checkpoint": stage2.source_checkpoint,
+            "esh_checkpoint": stage2.esh_checkpoint,
+            "adaptation_checkpoint": stage2.adaptation_checkpoint,
+            "duplicate_audit_manifest": stage2.duplicate_audit_manifest,
+            "target_adaptation_manifest": stage2.target_adaptation_manifest,
+            "target_eval_manifest": stage2.target_eval_manifest,
+            "target_labels_allowed_for_training": stage2.target_labels_allowed_for_training,
+            "consistency_metric": stage2.consistency_metric,
+        }
+    return manifest

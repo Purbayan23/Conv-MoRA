@@ -17,6 +17,7 @@ defaults:
   - checkpoint: disabled
   - runtime: local
   - experiment: baseline_isic2016_unet
+  - stage2: disabled
   - _self_
 
 project:

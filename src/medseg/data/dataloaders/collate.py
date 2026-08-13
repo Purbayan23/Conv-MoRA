@@ -24,4 +24,14 @@ def segmentation_collate(batch: list[SegmentationSample]) -> dict[str, Any]:
     }
 
 
+def image_collate(batch: list[dict[str, Any]]) -> dict[str, Any]:
+    """Stack image-only samples while preserving IDs and metadata."""
+
+    return {
+        "image": torch.stack([sample["image"] for sample in batch], dim=0),
+        "sample_id": [sample["sample_id"] for sample in batch],
+        "metadata": [sample["metadata"] for sample in batch],
+    }
+
+
 passthrough_collate = segmentation_collate

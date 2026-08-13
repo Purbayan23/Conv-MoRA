@@ -46,7 +46,7 @@ class ModelBuilderTests(unittest.TestCase):
         validate_model_input_tensor(FakeTensor(shape=(2, 3, 256, 256), dtype="float32"), expected_channels=3)
         validate_model_output({"logits": FakeTensor(shape=(2, 1, 256, 256), dtype="float32")}, expected_batch_size=2)
 
-    def test_unet_builder_raises_clear_not_implemented(self) -> None:
+    def test_unet_builder_constructs_existing_baseline(self) -> None:
         config = load_typed_config()
-        with self.assertRaises(NotImplementedError):
-            build_model(config)
+        model = build_model(config)
+        self.assertEqual(model.__class__.__name__, "UNetRonneberger2015")

@@ -76,6 +76,27 @@ class SegmentationTransformPipeline:
         return transformed
 
 
+class ImageTransformPipeline:
+    """Image-only preprocessing for unlabeled target adaptation samples."""
+
+    def __init__(self, plan: TransformPlan) -> None:
+        self.plan = plan
+
+    def __call__(self, sample: dict[str, Any]) -> dict[str, Any]:
+        image = _ensure_rgb_image(sample["image"])
+        width, height = self.plan.image_size[1], self.plan.image_size[0]
+        image = image.resize(
+            (width, height),
+            resample=_resolve_resample_mode(self.plan.image_interpolation),
+        )
+        image_tensor = _to_image_tensor(image)
+        if self.plan.normalize_images and self.plan.mean and self.plan.std:
+            image_tensor = _normalize_image_tensor(image_tensor, self.plan.mean, self.plan.std)
+        transformed = dict(sample)
+        transformed["image"] = image_tensor
+        return transformed
+
+
 def describe_transform_plan(config: Any, stage: Literal["train", "eval"]) -> TransformPlan:
     """Return the transform policy for one stage."""
 
@@ -99,6 +120,12 @@ def build_transforms(config: Any, stage: Literal["train", "eval"]) -> Transform:
 
     plan = describe_transform_plan(config=config, stage=stage)
     return SegmentationTransformPipeline(plan)
+
+
+def build_image_transform(config: Any, stage: Literal["train", "eval"]) -> ImageTransformPipeline:
+    """Build preprocessing that does not access or modify a target mask."""
+
+    return ImageTransformPipeline(describe_transform_plan(config=config, stage=stage))
 
 
 def _ensure_rgb_image(image: object) -> Image.Image:
