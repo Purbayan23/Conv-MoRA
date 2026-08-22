@@ -24,14 +24,14 @@ metadata_keys:
 splits:
   train:
     name: train
-    images_dir: ${dataset.root}/ISBI2016_ISIC_Part1_Training_Data/ISBI2016_ISIC_Part1_Training_Data
-    masks_dir: ${dataset.root}/ISBI2016_ISIC_Part1_Training_GroundTruth/ISBI2016_ISIC_Part1_Training_GroundTruth
+    images_dir: ${dataset.root}/ISBI2016_ISIC_Part1_Training_Data
+    masks_dir: ${dataset.root}/ISBI2016_ISIC_Part1_Training_GroundTruth
     manifest_path: ${dataset.root}/splits/train.csv
     definition_source: generated_from_official_training
   val:
     name: val
-    images_dir: ${dataset.root}/ISBI2016_ISIC_Part1_Training_Data/ISBI2016_ISIC_Part1_Training_Data
-    masks_dir: ${dataset.root}/ISBI2016_ISIC_Part1_Training_GroundTruth/ISBI2016_ISIC_Part1_Training_GroundTruth
+    images_dir: ${dataset.root}/ISBI2016_ISIC_Part1_Training_Data
+    masks_dir: ${dataset.root}/ISBI2016_ISIC_Part1_Training_GroundTruth
     manifest_path: ${dataset.root}/splits/val.csv
     definition_source: generated_from_official_training
   test:
