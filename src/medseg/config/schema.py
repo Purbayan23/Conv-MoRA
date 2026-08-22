@@ -409,6 +409,7 @@ class Stage2Config:
     consistency_fraction: float = 0.2
     consistency_split_seed: int = 42
     consistency_metric: str = "consistency_dice_global"
+    detach_pseudo_labels: bool = False
     adabn_train_affine: bool = False
     target_labels_allowed_for_training: bool = False
 

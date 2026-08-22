@@ -111,7 +111,9 @@ class Stage2Tests(unittest.TestCase):
         esh.eval()
         images = torch.rand(1, 3, 32, 32)
         before = model.down1[0].running_mean.detach().clone()
-        loss, pseudo, _, adapted_logits = target_adaptation_step(model, esh, images, BCELoss())
+        loss, pseudo, _, adapted_logits = target_adaptation_step(
+            model, esh, images, BCELoss(), config=config
+        )
         self.assertTrue(pseudo.requires_grad)
         self.assertEqual(adapted_logits.shape, (1, 1, 32, 32))
         self.assertTrue(torch.isfinite(loss))
@@ -120,6 +122,36 @@ class Stage2Tests(unittest.TestCase):
         self.assertFalse(any(parameter.requires_grad for name, parameter in model.named_parameters() if "lora_" not in name))
         self.assertFalse(any(parameter.requires_grad for parameter in esh.parameters()))
         self.assertFalse(torch.equal(before, model.down1[0].running_mean))
+
+    def test_pseudo_label_detachment_is_configuration_controlled(self) -> None:
+        config = compose_config(overrides=["model=unet2d_convlora", "stage2=convlora_isic2016"])
+        config.model.n_filters_init = 2
+        model = prepare_adaptation_model(config)
+        esh = EarlySegmentationHead(in_channels=16, out_channels=1, level=3)
+        for parameter in esh.parameters():
+            parameter.requires_grad = False
+        esh.eval()
+        images = torch.rand(1, 3, 32, 32)
+
+        _, attached, _, _ = target_adaptation_step(
+            model, esh, images, BCELoss(), config=config
+        )
+        self.assertFalse(config.stage2.detach_pseudo_labels)
+        self.assertTrue(attached.requires_grad)
+        self.assertIsNotNone(attached.grad_fn)
+
+        config.stage2.detach_pseudo_labels = True
+        _, detached, _, _ = target_adaptation_step(
+            model, esh, images, BCELoss(), config=config
+        )
+        self.assertFalse(detached.requires_grad)
+        self.assertIsNone(detached.grad_fn)
+        self.assertTrue(
+            any("lora_" in name and parameter.requires_grad for name, parameter in model.named_parameters())
+        )
+        self.assertFalse(
+            any("lora_" not in name and parameter.requires_grad for name, parameter in model.named_parameters())
+        )
 
     def test_target_manifest_adaptation_is_image_only_and_eval_has_masks(self) -> None:
         config = compose_config(overrides=["stage2=convlora_isic2016"])

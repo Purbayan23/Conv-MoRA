@@ -98,11 +98,14 @@ def target_adaptation_step(
     esh: EarlySegmentationHead,
     images: torch.Tensor,
     loss_fn: BaseLoss | nn.Module,
+    config: AppConfig | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-    """Run the reference-style source-pseudo-label to ESH computation graph."""
+    """Run the source-pseudo-label to ESH computation graph."""
 
     source_logits = model(images)["logits"]
     pseudo_labels = torch.sigmoid(source_logits)
+    if config is not None and config.stage2.detach_pseudo_labels:
+        pseudo_labels = pseudo_labels.detach()
     features = model.encode(images)[_feature_name(esh.level)]
     adapted_logits = esh(features)
     if adapted_logits.shape[-2:] != source_logits.shape[-2:]:
@@ -269,7 +272,7 @@ def adapt_model(
         sample_count = 0
         for batch in dataloader:
             images = batch["image"].to(device)
-            loss, _, _, _ = target_adaptation_step(model, esh, images, loss_fn)
+            loss, _, _, _ = target_adaptation_step(model, esh, images, loss_fn, config=config)
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             optimizer.step()

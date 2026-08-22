@@ -25,5 +25,6 @@ adaptation_lr: 0.0001
 consistency_fraction: 0.2
 consistency_split_seed: 42
 consistency_metric: consistency_dice_global
+detach_pseudo_labels: false
 adabn_train_affine: false
 target_labels_allowed_for_training: false
