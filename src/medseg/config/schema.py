@@ -382,6 +382,7 @@ class Stage2Config:
     """Minimal configuration for the paper-inspired target adaptation workflow."""
 
     enabled: bool = False
+    adaptation_mode: str = "convlora"
     protocol_name: str = "disabled"
     source_checkpoint: str | None = None
     esh_checkpoint: str | None = None

@@ -1,0 +1,21 @@
+# @package stage2
+enabled: true
+adaptation_mode: bn_only
+protocol_name: bn_only_target_batchnorm_isic2017
+source_checkpoint: null
+esh_checkpoint: null
+adaptation_checkpoint: null
+duplicate_audit_manifest: ./splits/isic2017_duplicate_audit.csv
+target_adaptation_manifest: ./splits/isic2017_target_adaptation.csv
+target_eval_manifest: ./splits/isic2017_target_eval.csv
+target_images_dir: ${oc.env:ISIC2017_IMAGES_DIR,./data/isic2017/ISIC-2017_Training_Data}
+target_masks_dir: ${oc.env:ISIC2017_MASKS_DIR,./data/isic2017/ISIC-2017_Training_Part1_GroundTruth}
+insertion_scope: []
+convlora_rank: 0
+convlora_alpha: 0
+adaptation_epochs: 5
+adaptation_batch_size: 32
+consistency_fraction: 0.2
+consistency_split_seed: 42
+adabn_train_affine: false
+target_labels_allowed_for_training: false

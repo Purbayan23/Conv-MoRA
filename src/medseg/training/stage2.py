@@ -17,11 +17,14 @@ from medseg.losses.base import BaseLoss
 from medseg.metrics.binary_segmentation import binary_confusion_counts
 from medseg.models.architectures.unet2d import UNet2D
 from medseg.models.extensions.convlora import (
+    ConvLoRA,
     apply_convlora,
     freeze_base_model,
     mark_only_adapter_as_trainable,
 )
 from medseg.models.heads.early_segmentation import EarlySegmentationHead
+from medseg.utils.serialization import write_json
+from medseg.validation.evaluator import Evaluator
 
 
 def load_model_state(
@@ -69,6 +72,24 @@ def prepare_adaptation_model(
     )
     mark_only_adapter_as_trainable(model)
     # Base BN affine parameters stay frozen; train mode updates running buffers.
+    model.train()
+    return model.to(device)
+
+
+def prepare_bn_only_model(
+    config: AppConfig,
+    source_checkpoint: str | Path | None = None,
+    device: torch.device | str = "cpu",
+) -> UNet2D:
+    """Load a source U-Net with only BatchNorm buffers allowed to update."""
+
+    model = build_base_unet(config)
+    checkpoint = source_checkpoint or config.stage2.source_checkpoint
+    if checkpoint:
+        load_model_state(checkpoint, model, device=device)
+    if any(isinstance(module, ConvLoRA) for module in model.modules()):
+        raise RuntimeError("BN-only preparation unexpectedly found a ConvLoRA module.")
+    freeze_base_model(model)
     model.train()
     return model.to(device)
 
@@ -328,6 +349,129 @@ def adapt_model(
     return best_path
 
 
+def collect_bn_statistics(
+    model: UNet2D,
+    dataloader: DataLoader,
+    device: torch.device | str,
+) -> int:
+    """Update only BatchNorm running statistics from image-only batches."""
+
+    model.train()
+    sample_count = 0
+    with torch.no_grad():
+        for batch in dataloader:
+            images = batch["image"].to(device)
+            model(images)
+            sample_count += int(images.shape[0])
+    if sample_count == 0:
+        raise ValueError("Cannot collect BatchNorm statistics from an empty dataloader.")
+    return sample_count
+
+
+def run_bn_only(
+    config: AppConfig,
+    model: UNet2D,
+    adaptation_dataloader: DataLoader,
+    evaluation_dataloader: DataLoader,
+    loss_fn: BaseLoss | nn.Module,
+    device: torch.device | str,
+    output_dir: str | Path,
+    consistency_subset_size: int,
+) -> Path:
+    """Run BN-statistics-only adaptation and save the final post-pass state."""
+
+    if config.stage2.adabn_train_affine:
+        raise ValueError("BN-only adaptation requires adabn_train_affine=false.")
+    if any(parameter.requires_grad for parameter in model.parameters()):
+        raise ValueError("BN-only adaptation requires every model parameter to be frozen.")
+    if any(isinstance(module, ConvLoRA) for module in model.modules()):
+        raise ValueError("BN-only adaptation cannot contain ConvLoRA modules.")
+
+    output_root = Path(output_dir)
+    checkpoint_path = output_root / "checkpoints" / "final.pt"
+    evaluator = Evaluator.from_config(config)
+    history: list[dict[str, Any]] = []
+
+    model.eval()
+    source_only = evaluator.evaluate(
+        model=model,
+        dataloader=evaluation_dataloader,
+        loss_fn=loss_fn,
+        device=device,
+    )
+    history.append(_bn_only_record(epoch=0, phase="source_only", results=source_only))
+    print(
+        "BN-only 000 | source_only | "
+        f"loss={source_only['loss']:.4f} | dice={source_only['dice']:.4f} | "
+        f"iou={source_only['iou']:.4f} | precision={source_only['precision']:.4f} | "
+        f"recall={source_only['recall']:.4f}"
+    )
+
+    for epoch in range(1, config.stage2.adaptation_epochs + 1):
+        collected = collect_bn_statistics(model, adaptation_dataloader, device)
+        model.eval()
+        results = evaluator.evaluate(
+            model=model,
+            dataloader=evaluation_dataloader,
+            loss_fn=loss_fn,
+            device=device,
+        )
+        record = _bn_only_record(epoch=epoch, phase="bn_statistics", results=results)
+        record["adaptation_samples_seen"] = collected
+        history.append(record)
+        print(
+            f"BN-only {epoch:03d}/{config.stage2.adaptation_epochs:03d} | "
+            f"loss={results['loss']:.4f} | dice={results['dice']:.4f} | "
+            f"iou={results['iou']:.4f} | precision={results['precision']:.4f} | "
+            f"recall={results['recall']:.4f}"
+        )
+
+    summary = {
+        "protocol_name": config.stage2.protocol_name,
+        "adaptation_mode": config.stage2.adaptation_mode,
+        "seed": config.seed,
+        "batch_size": config.stage2.adaptation_batch_size,
+        "adaptation_passes": config.stage2.adaptation_epochs,
+        "adaptation_subset_size": len(adaptation_dataloader.dataset),
+        "consistency_subset_size": consistency_subset_size,
+        "target_eval_size": len(evaluation_dataloader.dataset),
+        "consistency_split_seed": config.stage2.consistency_split_seed,
+        "target_labels_used_for_adaptation": False,
+        "consistency_subset_used_for_adaptation": False,
+        "convlora_enabled": False,
+        "bn_affine_trainable": False,
+        "optimizer": None,
+        "pseudo_label_loss": False,
+        "esh_used": False,
+        "checkpoint_selection": (
+            f"none; epoch {config.stage2.adaptation_epochs} is the final state"
+        ),
+        "history": history,
+    }
+    output_root.mkdir(parents=True, exist_ok=True)
+    write_json(output_root / "history.json", summary)
+    checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+    torch.save(
+        {
+            "epoch": config.stage2.adaptation_epochs,
+            "model_state_dict": model.state_dict(),
+            "protocol_name": config.stage2.protocol_name,
+            "adaptation_mode": config.stage2.adaptation_mode,
+            "source_checkpoint": config.stage2.source_checkpoint,
+            "target_adaptation_manifest": config.stage2.target_adaptation_manifest,
+            "target_eval_manifest": config.stage2.target_eval_manifest,
+            "adaptation_subset_size": len(adaptation_dataloader.dataset),
+            "consistency_subset_size": consistency_subset_size,
+            "target_eval_size": len(evaluation_dataloader.dataset),
+            "convlora_enabled": False,
+            "bn_affine_trainable": False,
+            "history": history,
+        },
+        checkpoint_path,
+    )
+    return checkpoint_path
+
+
 def evaluate_consistency(
     model: UNet2D,
     esh: EarlySegmentationHead,
@@ -417,15 +561,34 @@ def _feature_name(level: int) -> str:
     return names[level]
 
 
+def _bn_only_record(
+    epoch: int,
+    phase: str,
+    results: dict[str, float],
+) -> dict[str, Any]:
+    return {
+        "epoch": epoch,
+        "phase": phase,
+        "loss": results["loss"],
+        "dice": results["dice"],
+        "iou": results["iou"],
+        "precision": results["precision"],
+        "recall": results["recall"],
+    }
+
+
 __all__ = [
     "adapt_model",
     "build_base_unet",
+    "collect_bn_statistics",
     "evaluate_consistency",
     "global_binary_dice",
     "load_model_state",
     "prepare_adaptation_model",
+    "prepare_bn_only_model",
     "prepare_frozen_esh",
     "split_adaptation_dataset",
+    "run_bn_only",
     "target_adaptation_step",
     "train_esh",
 ]
