@@ -412,6 +412,7 @@ class Stage2Config:
     consistency_metric: str = "consistency_dice_global"
     detach_pseudo_labels: bool = False
     adabn_train_affine: bool = False
+    freeze_bn_running_stats: bool = False
     target_labels_allowed_for_training: bool = False
 
 

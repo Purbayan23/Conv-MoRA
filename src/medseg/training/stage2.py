@@ -58,7 +58,7 @@ def prepare_adaptation_model(
     source_checkpoint: str | Path | None = None,
     device: torch.device | str = "cpu",
 ) -> UNet2D:
-    """Load a source model, insert encoder ConvLoRA, and prepare AdaBN mode."""
+    """Load a source model, insert ConvLoRA, and configure BN adaptation mode."""
 
     model = build_base_unet(config)
     checkpoint = source_checkpoint or config.stage2.source_checkpoint
@@ -71,8 +71,9 @@ def prepare_adaptation_model(
         scope=config.stage2.insertion_scope,
     )
     mark_only_adapter_as_trainable(model)
-    # Base BN affine parameters stay frozen; train mode updates running buffers.
     model.train()
+    if config.stage2.freeze_bn_running_stats:
+        set_batchnorm_eval(model)
     return model.to(device)
 
 
@@ -288,6 +289,8 @@ def adapt_model(
 
     for epoch in range(1, config.stage2.adaptation_epochs + 1):
         model.train()
+        if config.stage2.freeze_bn_running_stats:
+            set_batchnorm_eval(model)
         esh.eval()
         total_loss = 0.0
         sample_count = 0
@@ -309,6 +312,8 @@ def adapt_model(
             dataloader=consistency_dataloader,
             device=device,
         )
+        if config.stage2.freeze_bn_running_stats:
+            set_batchnorm_eval(model)
         record = {
             "epoch": epoch,
             "adaptation_loss": total_loss / sample_count,
@@ -334,6 +339,7 @@ def adapt_model(
             "convlora_rank": config.stage2.convlora_rank,
             "convlora_alpha": config.stage2.convlora_alpha,
             "adabn_train_affine": config.stage2.adabn_train_affine,
+            "freeze_bn_running_stats": config.stage2.freeze_bn_running_stats,
             "checkpoint_metric": config.stage2.consistency_metric,
             "consistency_subset_size": len(consistency_dataloader.dataset),
             "adaptation_subset_size": len(dataloader.dataset),
@@ -347,6 +353,14 @@ def adapt_model(
             f"loss={record['adaptation_loss']:.4f} | consistency_dice={consistency_dice:.4f}"
         )
     return best_path
+
+
+def set_batchnorm_eval(model: nn.Module) -> None:
+    """Keep every BatchNorm module in eval mode while other layers train."""
+
+    for module in model.modules():
+        if isinstance(module, nn.modules.batchnorm._BatchNorm):
+            module.eval()
 
 
 def collect_bn_statistics(
@@ -587,6 +601,7 @@ __all__ = [
     "prepare_adaptation_model",
     "prepare_bn_only_model",
     "prepare_frozen_esh",
+    "set_batchnorm_eval",
     "split_adaptation_dataset",
     "run_bn_only",
     "target_adaptation_step",

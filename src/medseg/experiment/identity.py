@@ -139,9 +139,16 @@ def build_experiment_manifest(config: AppConfig) -> dict[str, Any]:
         else:
             manifest["stage2"] = {
                 "protocol_name": stage2.protocol_name,
-                "paper_mapping": "full_encoder_convlora_plus_adabn",
+                "paper_mapping": (
+                    "full_encoder_convlora_without_adabn"
+                    if stage2.freeze_bn_running_stats
+                    else "full_encoder_convlora_plus_adabn"
+                ),
                 "executable_reference_mapping": (
-                    "init_path,down1,down2,down3 ConvLoRA with train-mode BN buffers; "
+                    "init_path,down1,down2,down3 ConvLoRA with eval-mode BN buffers; "
+                    "BN affine parameters frozen"
+                    if stage2.freeze_bn_running_stats
+                    else "init_path,down1,down2,down3 ConvLoRA with train-mode BN buffers; "
                     "BN affine parameters frozen"
                 ),
                 "reference_discrepancy": (
@@ -151,6 +158,7 @@ def build_experiment_manifest(config: AppConfig) -> dict[str, Any]:
                 "insertion_scope": list(stage2.insertion_scope),
                 "convlora_rank": stage2.convlora_rank,
                 "convlora_alpha": stage2.convlora_alpha,
+                "freeze_bn_running_stats": stage2.freeze_bn_running_stats,
                 "esh_level": stage2.esh_level,
                 "source_checkpoint": stage2.source_checkpoint,
                 "esh_checkpoint": stage2.esh_checkpoint,
