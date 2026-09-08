@@ -69,6 +69,7 @@ def prepare_adaptation_model(
         rank=config.stage2.convlora_rank,
         alpha=config.stage2.convlora_alpha,
         scope=config.stage2.insertion_scope,
+        kernel_size=config.stage2.convlora_kernel_size,
     )
     mark_only_adapter_as_trainable(model)
     model.train()
@@ -345,6 +346,8 @@ def adapt_model(
             "adaptation_subset_size": len(dataloader.dataset),
             "consistency_split_seed": config.stage2.consistency_split_seed,
         }
+        if config.stage2.convlora_kernel_size is not None:
+            payload["convlora_kernel_size"] = config.stage2.convlora_kernel_size
         torch.save(payload, latest_path)
         if is_best:
             torch.save(payload, best_path)

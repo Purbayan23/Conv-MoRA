@@ -137,20 +137,29 @@ def build_experiment_manifest(config: AppConfig) -> dict[str, Any]:
                 "target_labels_allowed_for_training": stage2.target_labels_allowed_for_training,
             }
         else:
-            manifest["stage2"] = {
-                "protocol_name": stage2.protocol_name,
-                "paper_mapping": (
-                    "full_encoder_convlora_without_adabn"
-                    if stage2.freeze_bn_running_stats
-                    else "full_encoder_convlora_plus_adabn"
-                ),
-                "executable_reference_mapping": (
+            if stage2.convlora_kernel_size == 3:
+                paper_mapping = "encoder_3x3_convlora_without_adabn"
+                executable_mapping = (
+                    "init_path,down1,down2,down3 3x3 ConvLoRA only; 2x2 stride-2 "
+                    "downsampling convolutions untouched; BN buffers eval-mode; "
+                    "BN affine parameters frozen"
+                )
+            elif stage2.freeze_bn_running_stats:
+                paper_mapping = "full_encoder_convlora_without_adabn"
+                executable_mapping = (
                     "init_path,down1,down2,down3 ConvLoRA with eval-mode BN buffers; "
                     "BN affine parameters frozen"
-                    if stage2.freeze_bn_running_stats
-                    else "init_path,down1,down2,down3 ConvLoRA with train-mode BN buffers; "
+                )
+            else:
+                paper_mapping = "full_encoder_convlora_plus_adabn"
+                executable_mapping = (
+                    "init_path,down1,down2,down3 ConvLoRA with train-mode BN buffers; "
                     "BN affine parameters frozen"
-                ),
+                )
+            manifest["stage2"] = {
+                "protocol_name": stage2.protocol_name,
+                "paper_mapping": paper_mapping,
+                "executable_reference_mapping": executable_mapping,
                 "reference_discrepancy": (
                     "reference constrained_lora_down3 omits adapter insertion; reference "
                     "test.py lora:down3 is the closest executable four-stage mapping"
@@ -169,4 +178,6 @@ def build_experiment_manifest(config: AppConfig) -> dict[str, Any]:
                 "target_labels_allowed_for_training": stage2.target_labels_allowed_for_training,
                 "consistency_metric": stage2.consistency_metric,
             }
+        if stage2.convlora_kernel_size is not None:
+            manifest["stage2"]["convlora_kernel_size"] = stage2.convlora_kernel_size
     return manifest

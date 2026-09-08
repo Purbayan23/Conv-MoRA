@@ -149,8 +149,17 @@ def apply_convlora(
     rank: int = 2,
     alpha: int = 2,
     scope: Sequence[str] | str | None = None,
+    kernel_size: int | None = None,
 ) -> nn.Module:
-    """Replace Conv2d layers in selected encoder modules with ConvLoRA layers."""
+    """Replace selected Conv2d layers with ConvLoRA layers.
+
+    ``kernel_size=None`` preserves the historical behavior of adapting every
+    convolution in the selected modules. A size filter is used only by scoped
+    ablations such as the 3x3-only experiment.
+    """
+
+    if kernel_size is not None and kernel_size <= 0:
+        raise ValueError("kernel_size must be positive when provided.")
 
     selected_scope = _resolve_scope(scope)
     for module_name in selected_scope:
@@ -158,7 +167,12 @@ def apply_convlora(
             module = getattr(model, module_name)
         except AttributeError as error:
             raise ValueError(f"Model has no ConvLoRA insertion module '{module_name}'.") from error
-        _replace_convolutions(module, rank=rank, alpha=alpha)
+        _replace_convolutions(
+            module,
+            rank=rank,
+            alpha=alpha,
+            kernel_size=kernel_size,
+        )
     return model
 
 
@@ -222,14 +236,25 @@ def _resolve_scope(scope: Sequence[str] | str | None) -> tuple[str, ...]:
     return tuple(scope)
 
 
-def _replace_convolutions(module: nn.Module, rank: int, alpha: int) -> None:
+def _replace_convolutions(
+    module: nn.Module,
+    rank: int,
+    alpha: int,
+    kernel_size: int | None = None,
+) -> None:
     for name, child in list(module.named_children()):
         if isinstance(child, ConvLoRA):
             continue
         if isinstance(child, nn.Conv2d):
-            setattr(module, name, ConvLoRA.from_conv(child, r=rank, lora_alpha=alpha))
+            if kernel_size is None or child.kernel_size == (kernel_size, kernel_size):
+                setattr(module, name, ConvLoRA.from_conv(child, r=rank, lora_alpha=alpha))
         else:
-            _replace_convolutions(child, rank=rank, alpha=alpha)
+            _replace_convolutions(
+                child,
+                rank=rank,
+                alpha=alpha,
+                kernel_size=kernel_size,
+            )
 
 
 __all__ = [

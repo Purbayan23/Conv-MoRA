@@ -397,6 +397,7 @@ class Stage2Config:
     )
     convlora_rank: int = 2
     convlora_alpha: int = 2
+    convlora_kernel_size: int | None = None
     esh_level: int = 3
     source_epochs: int = 50
     source_batch_size: int = 32
