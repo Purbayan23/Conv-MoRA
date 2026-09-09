@@ -235,7 +235,7 @@ Relative to full-encoder frozen-BN ConvLoRA, target Dice changed from 0.8355 to 
 
 ## Implementation Audit
 
-The read-only audit verified:
+Verified:
 
 - Source checkpoint loading and freezing
 - ConvLoRA insertion scope
@@ -278,7 +278,7 @@ The current preferred ConvLoRA reference for the subsequent ConvMoRA comparison 
 
 ## Planned ConvMoRA Design Constraint
 
-ConvMoRA is the next research stage, but implementation has not begun. The planned comparison must use the grouped row/column-sharing formulation with a square matrix under parameter matching.
+ConvMoRA is the next research stage, but implementation has not begun. The planned comparison will use the grouped row/column-sharing formulation with a square matrix under parameter matching.
 
 The ConvMoRA comparison should change only the adapter parameterization while keeping the encoder insertion scope, 3x3-only adapter restriction, BN treatment, ESH, pseudo-label objective, target adaptation data, adaptation/consistency split, optimizer, training schedule, and evaluation protocol fixed wherever applicable.
 
@@ -287,8 +287,6 @@ For each convolution, parameter matching must be calculated from the flattened c
 ## Explicitly Out Of Scope
 
 - ConvMoRA/MoRA implementation or evaluation
-- Fisher computation or selection
-- xLSTM
 - Continual learning
 - Automatic cross-dataset weight transfer
 - Additional dataset experiments
