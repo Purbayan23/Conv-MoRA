@@ -282,7 +282,7 @@ ConvMoRA is the next research stage, but implementation has not begun. The plann
 
 The ConvMoRA comparison should change only the adapter parameterization while keeping the encoder insertion scope, 3x3-only adapter restriction, BN treatment, ESH, pseudo-label objective, target adaptation data, adaptation/consistency split, optimizer, training schedule, and evaluation protocol fixed wherever applicable.
 
-For each convolution, parameter matching must be calculated from the flattened convolution dimensions. The reference first RGB-to-64 convolution requires special treatment because its flattened input dimension is only 9. If an equal-budget square MoRA dimension selected from parameter matching exceeds the smaller flattened dimension, a genuine high-rank/compressive MoRA mapping cannot be claimed. Exact parameter calculations and layer eligibility must therefore be established before implementation.
+For the active ConvLoRA/ConvMoRA `UNet2D`, the RGB input stem is a 3→16, 3×3 convolution (`n_filters_init=16`). Its flattened dimensions are therefore `I=3×3=9` and `D=16×3=48`. Parameter matching must be calculated from these active convolution dimensions: if an equal-budget square MoRA dimension selected from parameter matching exceeds the smaller flattened dimension, a genuine high-rank/compressive MoRA mapping cannot be claimed. The separate Ronneberger/reference U-Net has a 3→64 stem, but it is not the active ConvLoRA/ConvMoRA backbone and must not be used for this ConvMoRA design constraint. Exact parameter calculations and layer eligibility must therefore be established before implementation.
 
 ## Explicitly Out Of Scope
 
