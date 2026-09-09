@@ -1,4 +1,4 @@
-"""Small, explicit helpers for the Stage 2 ConvLoRA adaptation workflow."""
+"""Small, explicit helpers for the Stage 2 adapter adaptation workflow."""
 
 from __future__ import annotations
 
@@ -21,6 +21,10 @@ from medseg.models.extensions.convlora import (
     apply_convlora,
     freeze_base_model,
     mark_only_adapter_as_trainable,
+)
+from medseg.models.extensions.convmora import (
+    apply_convmora,
+    mark_only_convmora_as_trainable,
 )
 from medseg.models.heads.early_segmentation import EarlySegmentationHead
 from medseg.utils.serialization import write_json
@@ -58,20 +62,33 @@ def prepare_adaptation_model(
     source_checkpoint: str | Path | None = None,
     device: torch.device | str = "cpu",
 ) -> UNet2D:
-    """Load a source model, insert ConvLoRA, and configure BN adaptation mode."""
+    """Load a source model, insert the configured adapter, and configure BN mode."""
 
     model = build_base_unet(config)
     checkpoint = source_checkpoint or config.stage2.source_checkpoint
     if checkpoint:
         load_model_state(checkpoint, model, device=device)
-    apply_convlora(
-        model,
-        rank=config.stage2.convlora_rank,
-        alpha=config.stage2.convlora_alpha,
-        scope=config.stage2.insertion_scope,
-        kernel_size=config.stage2.convlora_kernel_size,
-    )
-    mark_only_adapter_as_trainable(model)
+    if config.stage2.adaptation_mode == "convmora_3x3_only_frozen_bn":
+        if config.stage2.convlora_kernel_size != 3:
+            raise ValueError(
+                "convmora_3x3_only_frozen_bn requires convlora_kernel_size=3."
+            )
+        apply_convmora(
+            model,
+            r_conv=config.stage2.convlora_rank,
+            scope=config.stage2.insertion_scope,
+            kernel_size=3,
+        )
+        mark_only_convmora_as_trainable(model)
+    else:
+        apply_convlora(
+            model,
+            rank=config.stage2.convlora_rank,
+            alpha=config.stage2.convlora_alpha,
+            scope=config.stage2.insertion_scope,
+            kernel_size=config.stage2.convlora_kernel_size,
+        )
+        mark_only_adapter_as_trainable(model)
     model.train()
     if config.stage2.freeze_bn_running_stats:
         set_batchnorm_eval(model)
@@ -275,11 +292,11 @@ def adapt_model(
     output_dir: str | Path,
     consistency_dataloader: DataLoader,
 ) -> Path:
-    """Adapt ConvLoRA parameters and select checkpoints after post-update scoring."""
+    """Adapt adapter parameters and select checkpoints after post-update scoring."""
 
     trainable = [parameter for parameter in model.parameters() if parameter.requires_grad]
     if not trainable:
-        raise ValueError("No trainable ConvLoRA parameters were found for adaptation.")
+        raise ValueError("No trainable adapter parameters were found for adaptation.")
     optimizer = torch.optim.Adam(trainable, lr=config.stage2.adaptation_lr, weight_decay=0.0)
     output_root = Path(output_dir)
     output_root.mkdir(parents=True, exist_ok=True)

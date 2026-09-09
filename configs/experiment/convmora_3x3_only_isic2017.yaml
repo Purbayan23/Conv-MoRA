@@ -1,0 +1,12 @@
+# @package experiment
+name: convmora_3x3_only_isic2017
+output_root: ${oc.env:MEDSEG_OUTPUT_ROOT,./outputs}
+tags: [stage2, convmora, conv3x3_only, bn_frozen, isic2017]
+save_top_k: 1
+monitor: consistency_dice_global
+monitor_mode: max
+max_epochs: 5
+log_every_n_steps: 10
+checkpoint_every_n_epochs: 1
+manifest_filename: run_manifest.json
+qualitative_examples: 0

@@ -137,7 +137,14 @@ def build_experiment_manifest(config: AppConfig) -> dict[str, Any]:
                 "target_labels_allowed_for_training": stage2.target_labels_allowed_for_training,
             }
         else:
-            if stage2.convlora_kernel_size == 3:
+            if stage2.adaptation_mode == "convmora_3x3_only_frozen_bn":
+                paper_mapping = "encoder_3x3_convmora_without_adabn"
+                executable_mapping = (
+                    "init_path,down1,down2,down3 3x3 ConvMoRA only; 2x2 stride-2 "
+                    "downsampling convolutions untouched; BN buffers eval-mode; "
+                    "BN affine parameters frozen"
+                )
+            elif stage2.convlora_kernel_size == 3:
                 paper_mapping = "encoder_3x3_convlora_without_adabn"
                 executable_mapping = (
                     "init_path,down1,down2,down3 3x3 ConvLoRA only; 2x2 stride-2 "
@@ -178,6 +185,8 @@ def build_experiment_manifest(config: AppConfig) -> dict[str, Any]:
                 "target_labels_allowed_for_training": stage2.target_labels_allowed_for_training,
                 "consistency_metric": stage2.consistency_metric,
             }
+            if stage2.adaptation_mode == "convmora_3x3_only_frozen_bn":
+                manifest["stage2"]["adapter_type"] = "convmora"
         if stage2.convlora_kernel_size is not None:
             manifest["stage2"]["convlora_kernel_size"] = stage2.convlora_kernel_size
     return manifest

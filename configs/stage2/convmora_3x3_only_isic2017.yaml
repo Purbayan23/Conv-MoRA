@@ -1,0 +1,33 @@
+# @package stage2
+enabled: true
+adaptation_mode: convmora_3x3_only_frozen_bn
+protocol_name: convmora_3x3_only_frozen_bn_isic2017
+source_checkpoint: null
+esh_checkpoint: null
+adaptation_checkpoint: null
+duplicate_audit_manifest: ./splits/isic2017_duplicate_audit.csv
+target_adaptation_manifest: ./splits/isic2017_target_adaptation.csv
+target_eval_manifest: ./splits/isic2017_target_eval.csv
+target_images_dir: ${oc.env:ISIC2017_IMAGES_DIR,./data/isic2017/ISIC-2017_Training_Data}
+target_masks_dir: ${oc.env:ISIC2017_MASKS_DIR,./data/isic2017/ISIC-2017_Training_Part1_GroundTruth}
+insertion_scope: [init_path, down1, down2, down3]
+convlora_rank: 2
+convlora_alpha: 2
+convlora_kernel_size: 3
+esh_level: 3
+source_epochs: 50
+source_batch_size: 32
+source_lr: 0.001
+esh_epochs: 20
+esh_batch_size: 32
+esh_lr: 0.001
+adaptation_epochs: 5
+adaptation_batch_size: 32
+adaptation_lr: 0.0001
+consistency_fraction: 0.2
+consistency_split_seed: 42
+consistency_metric: consistency_dice_global
+detach_pseudo_labels: false
+adabn_train_affine: false
+freeze_bn_running_stats: true
+target_labels_allowed_for_training: false
